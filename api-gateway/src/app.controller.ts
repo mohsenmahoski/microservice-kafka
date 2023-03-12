@@ -1,16 +1,34 @@
 import { Controller, Get, Inject } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
-import { Admin, Kafka } from '@nestjs/microservices/external/kafka.interface';
+import { Admin } from '@nestjs/microservices/external/kafka.interface';
+import { Kafka } from 'kafkajs';
 import { fibonacci } from './util';
 
 @Controller()
 export class AppController {
   private admin: Admin;
-  constructor(@Inject('HERO_SERVICE') private client: ClientKafka) {}
+  constructor(@Inject('FIBO_SERVICE') private client: ClientKafka) {}
 
   @Get('/fibonacci')
   async getFibo() {
     return fibonacci(40);
+  }
+
+  private getFiboResult() {
+    return new Promise((resolve) => {
+      this.client
+        .send('fibo', JSON.stringify({ num: 40 }))
+        .subscribe((result: number) => {
+          console.log('>>>>>>>>>>>>>>>>>>>>>>>>', result);
+          resolve(result);
+        });
+    });
+  }
+
+  @Get('/microservice-fibonacci')
+  async getFibonacci() {
+    const fibo = await this.getFiboResult();
+    return fibo;
   }
 
   async onModuleInit() {
